@@ -195,6 +195,9 @@ resource "google_compute_instance_template" "tpl" {
       network_ip         = length(network_interface.value.network_ip) > 0 ? network_interface.value.network_ip : null
       nic_type           = network_interface.value.nic_type
       stack_type         = network_interface.value.stack_type
+      network_attachment = network_interface.value.network_attachment
+      vlan               = network_interface.value.vlan
+      parent_nic_name  = network_interface.value.parent_nic_name 
       queue_count        = network_interface.value.queue_count
       dynamic "access_config" {
         for_each = network_interface.value.access_config

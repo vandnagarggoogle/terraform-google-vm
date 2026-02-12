@@ -266,6 +266,8 @@ variable "additional_networks" {
     nic_type           = string
     stack_type         = string
     queue_count        = number
+    network_attachment = optional(string)
+    vlan               = optional(number)
     access_config = list(object({
       nat_ip       = string
       network_tier = string

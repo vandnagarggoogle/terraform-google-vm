@@ -407,3 +407,7 @@ spec:
               value: DEFAULT
             - label: TIER_1
               value: TIER_1
+    runtime:
+      outputs:
+        parent_nic_names:
+          visibility: VISIBILITY_ROOT
