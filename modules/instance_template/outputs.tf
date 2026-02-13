@@ -39,7 +39,14 @@ output "service_account_info" {
   value       = local.service_account_output
 }
 
-output "parent_nic_names" {
-  description = "List of the parent network interface names for each dynamic interface across all instances."
-  value       = flatten(google_compute_instance_template.tpl.network_interface[*].parent_nic_name)
+output "network_interface_details" {
+  description = "The names and VLAN tags of the template interfaces."
+  # Extracts the name (e.g., nic0.10) and VLAN ID for every interface
+  value = [
+    for iface in google_compute_instance_template.tpl.network_interface : {
+      name = iface.name
+      vlan = iface.vlan
+    }
+  ]
 }
+

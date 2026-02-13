@@ -409,5 +409,6 @@ spec:
               value: TIER_1
     runtime:
       outputs:
-        parent_nic_names:
+        network_interface_details:
           visibility: VISIBILITY_ROOT
+
