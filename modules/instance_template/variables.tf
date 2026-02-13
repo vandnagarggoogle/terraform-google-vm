@@ -259,26 +259,34 @@ variable "additional_networks" {
   description = "Additional network interface details for GCE, if any."
   default     = []
   type = list(object({
-    network            = string
-    subnetwork         = string
-    subnetwork_project = string
-    network_ip         = string
-    nic_type           = string
-    stack_type         = string
-    queue_count        = number
-    network_attachment = optional(string)
-    vlan               = optional(number)
-    access_config = list(object({
-      nat_ip       = string
-      network_tier = string
-    }))
-    ipv6_access_config = list(object({
-      network_tier = string
-    }))
-    alias_ip_range = list(object({
+    network            = optional(string)
+    subnetwork         = optional(string)
+    subnetwork_project = optional(string)
+    network_ip         = optional(string)
+    nic_type           = optional(string)
+    stack_type         = optional(string)
+    
+    # New Fields
+    queue_count        = optional(number) # Multi-queue count (Rx/Tx)
+    network_attachment = optional(string) # Consumer link for PSC-I
+    vlan               = optional(number) # VLAN tag (2-255)
+
+    # Access Config (External IPv4)
+    access_config = optional(list(object({
+      nat_ip       = optional(string)
+      network_tier = optional(string) # PREMIUM or STANDARD
+    })), [])
+
+    # IPv6 Access Config (External IPv6)
+    ipv6_access_config = optional(list(object({
+      network_tier = string # Always PREMIUM for IPv6
+    })), [])
+
+    # Alias IP Ranges (Secondary ranges)
+    alias_ip_range = optional(list(object({
       ip_cidr_range         = string
-      subnetwork_range_name = string
-    }))
+      subnetwork_range_name = optional(string)
+    })), [])
   }))
   validation {
     condition = alltrue([
