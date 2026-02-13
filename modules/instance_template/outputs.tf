@@ -41,5 +41,5 @@ output "service_account_info" {
 
 output "parent_nic_names" {
   description = "List of the parent network interface names for each dynamic interface across all instances."
-  value       = flatten(google_compute_instance_from_template.compute_instance[*].network_interface[*].parent_nic_name)
+  value       = flatten(google_compute_instance_template.tpl.network_interface[*].parent_nic_name)
 }
