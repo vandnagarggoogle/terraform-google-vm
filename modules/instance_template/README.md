@@ -70,7 +70,7 @@ See the [simple](../../examples/instance_template/simple) for a usage example.
 | Name | Description |
 |------|-------------|
 | name | Name of instance template |
-| parent\_nic\_names | List of the parent network interface names for each dynamic interface across all instances. |
+| network\_interface\_details | The names and VLAN tags of the template interfaces. |
 | self\_link | Self-link of instance template |
 | self\_link\_unique | Unique self-link of instance template (recommended output to use instead of self\_link) |
 | service\_account\_info | Service account id and email |

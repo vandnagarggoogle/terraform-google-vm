@@ -232,6 +232,33 @@ variable "subnetwork_project" {
   default     = ""
 }
 
+variable "network_attachment" {
+  description = "The self_link of the network attachment for PSC-I connection."
+  type        = string
+  default     = null
+}
+
+variable "vlan" {
+  description = "The VLAN ID for the primary network interface (Dynamic NIC), must be an integer from 2 to 255."
+  type        = number
+  default     = null
+
+  validation {
+    condition     = var.vlan == null || (var.vlan >= 2 && var.vlan <= 255)
+    error_message = "The VLAN ID must be an integer between 2 and 255."
+  }
+}
+
+variable "subnets" {
+  description = "Optional: A map containing subnet details Used to derive the subnetwork URI if subnetwork is not provided."
+  type = list(object({
+    id      = string
+    region  = string
+    purpose = string
+  }))
+  default = []
+}
+
 variable "network_ip" {
   description = "Private IP address to assign to the instance if desired."
   type        = string

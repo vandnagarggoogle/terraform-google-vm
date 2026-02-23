@@ -159,7 +159,16 @@ resource "google_compute_instance_template" "tpl" {
 
   network_interface {
     network            = var.network
-    subnetwork         = var.subnetwork
+    subnetwork = (
+      var.subnetwork != "" ? var.subnetwork :
+      try(
+        [
+          for s in var.subnets : s.id
+          if s.region == var.region && (s.purpose == "PRIVATE")
+        ][0],
+        ""
+      )
+    )
     subnetwork_project = var.subnetwork_project
     network_ip         = length(var.network_ip) > 0 ? var.network_ip : null
     nic_type           = var.nic_type
