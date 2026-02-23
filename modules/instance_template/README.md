@@ -41,6 +41,7 @@ See the [simple](../../examples/instance_template/simple) for a usage example.
 | min\_cpu\_platform | Specifies a minimum CPU platform. Applicable values are the friendly names of CPU platforms, such as Intel Haswell or Intel Skylake. See the complete list: https://cloud.google.com/compute/docs/instances/specify-min-cpu-platform | `string` | `null` | no |
 | name\_prefix | Name prefix for the instance template | `string` | `"default-instance-template"` | no |
 | network | The name or self\_link of the network to attach this interface to. Use network attribute for Legacy or Auto subnetted networks and subnetwork for custom subnetted networks. | `string` | `""` | no |
+| network\_attachment | The self\_link of the network attachment for PSC-I connection. | `string` | `null` | no |
 | network\_ip | Private IP address to assign to the instance if desired. | `string` | `""` | no |
 | nic\_type | Valid values are "VIRTIO\_NET", "GVNIC" or set to null to accept API default behavior. | `string` | `null` | no |
 | on\_host\_maintenance | Instance availability Policy | `string` | `"MIGRATE"` | no |
@@ -59,11 +60,13 @@ See the [simple](../../examples/instance_template/simple) for a usage example.
 | spot\_instance\_termination\_action | Action to take when Compute Engine preempts a Spot VM. | `string` | `"STOP"` | no |
 | stack\_type | The stack type for this network interface to identify whether the IPv6 feature is enabled or not. Values are `IPV4_IPV6` or `IPV4_ONLY`. Default behavior is equivalent to IPV4\_ONLY. | `string` | `null` | no |
 | startup\_script | User startup script to run when instances spin up | `string` | `""` | no |
+| subnets | Optional: A map containing subnet details Used to derive the subnetwork URI if subnetwork is not provided. | <pre>list(object({<br>    id      = string<br>    region  = string<br>    purpose = string<br>  }))</pre> | `[]` | no |
 | subnetwork | The name of the subnetwork to attach this interface to. The subnetwork must exist in the same region this instance will be created in. Either network or subnetwork must be provided. | `string` | `""` | no |
 | subnetwork\_project | The ID of the project in which the subnetwork belongs. If it is not provided, the provider project is used. | `string` | `""` | no |
 | tags | Network tags, provided as a list | `list(string)` | `[]` | no |
 | threads\_per\_core | The number of threads per physical core. To disable simultaneous multithreading (SMT) set this to 1. | `number` | `null` | no |
 | total\_egress\_bandwidth\_tier | Egress bandwidth tier setting for supported VM families | `string` | `"DEFAULT"` | no |
+| vlan | The VLAN ID for the primary network interface (Dynamic NIC), must be an integer from 2 to 255. | `number` | `null` | no |
 
 ## Outputs
 
