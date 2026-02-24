@@ -244,7 +244,7 @@ variable "vlan" {
   default     = null
 
   validation {
-    condition     = var.vlan == null || (var.vlan >= 2 && var.vlan <= 255)
+    condition     = var.vlan == null ? true : (var.vlan >= 2 && var.vlan <= 255)
     error_message = "The VLAN ID must be an integer between 2 and 255."
   }
 }
