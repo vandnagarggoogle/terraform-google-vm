@@ -35,17 +35,15 @@ func TestInstanceSimpleModule(t *testing.T) {
 	}
 
 	insSimpleT := tft.NewTFBlueprintTest(t)
-	insSimpleT.DefineVerify(func(assert *assert.Assertions) {
-		insSimpleT.DefaultVerify(assert)
+    insSimpleT.DefineVerify(func(assert *assert.Assertions) {
+        insSimpleT.DefaultVerify(assert)
 
-		projectId := insSimpleT.GetStringOutput("project_id")
-        var instances gcloud.Json
-        for i := 0; i < 6; i++ {
-            instances = gcloud.Run(t, fmt.Sprintf("compute instances list --project %s --filter name~%s", projectId, instanceNamePrefix))
-            if len(instances.Array()) == len(zoneIns) {
-                break
-            }
+        projectId := insSimpleT.GetStringOutput("project_id")
+        
+        instances := gcloud.Run(t, fmt.Sprintf("compute instances list --project %s --filter name~%s", projectId, instanceNamePrefix))
+        for i := 0; i < 6 && len(instances.Array()) != len(zoneIns); i++ {
             time.Sleep(10 * time.Second)
+            instances = gcloud.Run(t, fmt.Sprintf("compute instances list --project %s --filter name~%s", projectId, instanceNamePrefix))
         }
 
         assert.Equal(len(zoneIns), len(instances.Array()), "found 4 gce instances")
