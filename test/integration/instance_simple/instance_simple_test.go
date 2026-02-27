@@ -17,6 +17,7 @@ package instance_simple
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test/pkg/gcloud"
 	"github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test/pkg/tft"
@@ -37,13 +38,22 @@ func TestInstanceSimpleModule(t *testing.T) {
 	insSimpleT.DefineVerify(func(assert *assert.Assertions) {
 		insSimpleT.DefaultVerify(assert)
 
-		instances := gcloud.Run(t, fmt.Sprintf("compute instances list --project %s --filter name~%s", insSimpleT.GetStringOutput("project_id"), instanceNamePrefix))
-		assert.Equal(len(zoneIns), len(instances.Array()), "found 4 gce instances")
+		projectId := insSimpleT.GetStringOutput("project_id")
+        var instances gcloud.Json
+        for i := 0; i < 6; i++ {
+            instances = gcloud.Run(t, fmt.Sprintf("compute instances list --project %s --filter name~%s", projectId, instanceNamePrefix))
+            if len(instances.Array()) == len(zoneIns) {
+                break
+            }
+            time.Sleep(10 * time.Second)
+        }
 
-		for _, instance := range instances.Array() {
-			instanceName := instance.Get("name").String()
-			assert.Contains(instance.Get("zone").String(), zoneIns[instanceName], fmt.Sprintf("%s is in the right zone", instanceName))
-		}
-	})
-	insSimpleT.Test()
+        assert.Equal(len(zoneIns), len(instances.Array()), "found 4 gce instances")
+
+        for _, instance := range instances.Array() {
+            instanceName := instance.Get("name").String()
+            assert.Contains(instance.Get("zone").String(), zoneIns[instanceName], fmt.Sprintf("%s is in the right zone", instanceName))
+        }
+    })
+    insSimpleT.Test()
 }
