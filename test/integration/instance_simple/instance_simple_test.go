@@ -1,18 +1,31 @@
+/**
+ * Copyright 2021 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package instance_simple
 
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test/pkg/gcloud"
 	"github.com/GoogleCloudPlatform/cloud-foundation-toolkit/infra/blueprint-test/pkg/tft"
 	"github.com/stretchr/testify/assert"
-	"github.com/tidwall/gjson"
 )
 
 func TestInstanceSimpleModule(t *testing.T) {
-	const instanceNamePrefix = "instance-simple"
 	zoneIns := map[string]string{
 		"instance-simple-001": "us-central1-a",
 		"instance-simple-002": "us-central1-b",
@@ -26,25 +39,14 @@ func TestInstanceSimpleModule(t *testing.T) {
 		insSimpleT.DefaultVerify(assert)
 
 		projectId := insSimpleT.GetStringOutput("project_id")
-		expectedCount := len(zoneIns)
 
-		var instances gjson.Result
-		for i := 0; i < 12; i++ {
-			instances = gcloud.Run(t, fmt.Sprintf("compute instances list --project %s --filter name~%s", projectId, instanceNamePrefix))
-			if len(instances.Array()) == expectedCount {
-				break
-			}
-			t.Logf("Expected %d instances, found %d. Retrying in 10s... (Attempt %d/12)", expectedCount, len(instances.Array()), i+1)
-			time.Sleep(10 * time.Second)
-		}
+		for instanceName, zone := range zoneIns {
+			op := gcloud.Run(t, fmt.Sprintf("compute instances describe %s --zone %s --project %s", instanceName, zone, projectId))
 
-		assert.Equal(expectedCount, len(instances.Array()), fmt.Sprintf("expected to find %d gce instances, but found %d", expectedCount, len(instances.Array())))
+			assert.Equal("RUNNING", op.Get("status").String(), fmt.Sprintf("instance %s should be in RUNNING state", instanceName))
 
-		for _, instance := range instances.Array() {
-			instanceName := instance.Get("name").String()
-			expectedZone := zoneIns[instanceName]
-			actualZone := instance.Get("zone").String()
-			assert.Contains(actualZone, expectedZone, fmt.Sprintf("instance %s is in the right zone", instanceName))
+			actualZone := op.Get("zone").String()
+			assert.Contains(actualZone, zone, fmt.Sprintf("instance %s should be in zone %s", instanceName, zone))
 		}
 	})
 
