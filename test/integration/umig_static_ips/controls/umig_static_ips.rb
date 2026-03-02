@@ -7,7 +7,7 @@ control "UMIG" do
   # 1. Properly handle the attribute with a robust fallback for local testing
   project_id = attribute('project_id')
   raw_region = attribute('region')
-  
+
   # Logic to ignore the InSpec "Input does not have a value" error string
   if raw_region.nil? || raw_region.include?("does not have a value")
     region = 'us-central1'

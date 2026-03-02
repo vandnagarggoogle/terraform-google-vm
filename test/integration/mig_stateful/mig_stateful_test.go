@@ -43,10 +43,10 @@ func TestMigStatefulModule(t *testing.T) {
 		// Specifying the region bypasses the stale global aggregated list index and ensures
 		// the resource is found immediately after creation.
 		mig := gcloud.Run(t, fmt.Sprintf("compute instance-groups managed describe %s --region %s --project %s", migName, region, projectID))
-		
+
 		// Verify the MIG exists and its target size matches expectations
 		assert.Equal(int64(expected_instances), mig.Get("targetSize").Int(), "MIG should have the correct target size")
-		
+
 		// Verify stateful configuration status using the path from your original code
 		assert.True(mig.Get("status").Get("stateful").Get("hasStatefulConfig").Bool(), fmt.Sprintf("%s should have stateful config", migName))
 
