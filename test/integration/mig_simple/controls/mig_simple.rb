@@ -21,11 +21,12 @@ expected_instance_groups = 1
 control "MIG" do
   title "Simple Configuration"
 
-  # 1. Instance Verification (Using Strongly Consistent Regional Command)
-  # This command queries the MIG directly in its region to bypass the stale global index.
-  describe command("gcloud compute instance-groups managed list-instances mig-simple --project=#{project_id} --region=#{region} --format=json") do
+  # 1. Instance Verification (Using Strongly Consistent Zonal Query)
+  # We use '--zones' instead of '--regions' because 'instances list' is a zonal command.
+  # For the standard 'us-central1' test, we check all 4 possible zones.
+  describe command("gcloud compute instances list --project=#{project_id} --zones=#{region}-a,#{region}-b,#{region}-c,#{region}-f --format=json --filter='name:mig-simple'") do
     its(:exit_status) { should eq 0 }
-    its(:stderr) { should eq '' } # Will be empty because resources are found immediately
+    its(:stderr) { should eq '' } # Will be empty because data is found immediately
 
     let!(:data) do
       if subject.exit_status == 0
