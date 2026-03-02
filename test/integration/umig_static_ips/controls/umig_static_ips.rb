@@ -13,6 +13,7 @@
 # limitations under the License.
 
 project_id = attribute('project_id')
+region     = attribute('region') || 'us-central1'
 
 expected_instances = 4
 expected_instance_groups = 4
