@@ -12,82 +12,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project_id = attribute('project_id')
-region     = attribute('region') || 'us-central1'
-
-expected_instances = 4
-expected_instance_groups = 4
-test_zones = "#{region}-a,#{region}-b,#{region}-c,#{region}-f"
-
 control "UMIG" do
   title "Static IPs"
 
-  # 1. Instance and Static IP Verification (Using Strongly Consistent Zonal Query)
-  # Adding --zones bypasses the stale global index and fixes the 'actual: 0' error.
-  describe command("gcloud --project=#{project_id} compute instances list --zones=#{test_zones} --format=json --filter='name:umig-static-ips'") do
-    its(:exit_status) { should eq 0 }
-    its(:stderr) { should eq '' } # Will be empty because data is found immediately
+  # Define attributes INSIDE the control block to avoid 'undefined local variable' errors
+  project_id = attribute('project_id')
+  region     = attribute('region') || 'us-central1'
 
-    let!(:data) do
-      if subject.exit_status == 0
-        JSON.parse(subject.stdout)
-      else
-        []
-      end
-    end
+  expected_instances = 4
+  expected_instance_groups = 4
 
-    describe "number of instances" do
-      it "should be #{expected_instances}" do
-        expect(data.length).to eq(expected_instances)
-      end
-    end
+  # Map of instances and their expected properties for verification
+  instances_to_verify = {
+    "umig-static-ips-001" => { zone: "a", ip: "10.128.0.10" },
+    "umig-static-ips-002" => { zone: "b", ip: "10.128.0.11" },
+    "umig-static-ips-003" => { zone: "c", ip: "10.128.0.12" },
+    "umig-static-ips-004" => { zone: "f", ip: "10.128.0.13" }
+  }
 
-    # Specific instance property checks
-    describe "instance 001" do
-      let(:instance) { data.find { |i| i['name'] == "umig-static-ips-001" } }
-      it "should be in zone #{region}-a" do
-        expect(instance['zone']).to match(/.*#{region}-a$/)
-      end
-      it "should have IP 10.128.0.10" do
-        expect(instance['networkInterfaces'][0]['networkIP']).to eq("10.128.0.10")
-      end
-    end
+  # 1. Individual Instance and Static IP Verification (Strongly Consistent)
+  # Hits the regional/zonal source of truth directly to avoid global index lag.
+  instances_to_verify.each do |name, props|
+    describe "Instance #{name}" do
+      let(:cmd) { command("gcloud compute instances describe #{name} --zone=#{region}-#{props[:zone]} --project=#{project_id} --format=json") }
 
-    describe "instance 002" do
-      let(:instance) { data.find { |i| i['name'] == "umig-static-ips-002" } }
-      it "should be in zone #{region}-b" do
-        expect(instance['zone']).to match(/.*#{region}-b$/)
+      it "should exist and be in RUNNING state" do
+        expect(cmd.exit_status).to eq 0
+        expect(JSON.parse(cmd.stdout)['status']).to eq "RUNNING"
       end
-      it "should have IP 10.128.0.11" do
-        expect(instance['networkInterfaces'][0]['networkIP']).to eq("10.128.0.11")
-      end
-    end
 
-    describe "instance 003" do
-      let(:instance) { data.find { |i| i['name'] == "umig-static-ips-003" } }
-      it "should be in zone #{region}-c" do
-        expect(instance['zone']).to match(/.*#{region}-c$/)
+      it "should have the correct static IP #{props[:ip]}" do
+        # Verification fails if data is not present, ensuring no 'actual: 0' false passes
+        data = JSON.parse(cmd.stdout)
+        expect(data['networkInterfaces'][0]['networkIP']).to eq props[:ip]
       end
-      it "should have IP 10.128.0.12" do
-        expect(instance['networkInterfaces'][0]['networkIP']).to eq("10.128.0.12")
-      end
-    end
 
-    describe "instance 004" do
-      let(:instance) { data.find { |i| i['name'] == "umig-static-ips-004" } }
-      it "should be in zone #{region}-f" do
-        expect(instance['zone']).to match(/.*#{region}-f$/)
-      end
-      it "should have IP 10.128.0.13" do
-        expect(instance['networkInterfaces'][0]['networkIP']).to eq("10.128.0.13")
+      it "should be in the correct zone #{region}-#{props[:zone]}" do
+        data = JSON.parse(cmd.stdout)
+        expect(data['zone']).to match(/.*#{region}-#{props[:zone]}$/)
       end
     end
   end
 
-  # 2. Unmanaged Instance Group Verification (Using Zonal Query for Consistency)
-  describe command("gcloud --project=#{project_id} compute instance-groups list --zones=#{test_zones} --format=json --filter='name:umig-static-ips'") do
+  # 2. Unmanaged Instance Group Verification (Using Strongly Consistent Zonal Query)
+  test_zones = "#{region}-a,#{region}-b,#{region}-c,#{region}-f"
+  describe command("gcloud compute instance-groups list --project=#{project_id} --zones=#{test_zones} --format=json --filter='name:umig-static-ips'") do
     its(:exit_status) { should eq 0 }
-    its(:stderr) { should eq '' }
+    its(:stderr) { should eq '' } # No warning because data is found immediately via --zones
 
     let!(:data) do
       if subject.exit_status == 0
@@ -97,10 +68,8 @@ control "UMIG" do
       end
     end
 
-    describe "number of instance groups" do
-      it "should be #{expected_instance_groups}" do
-        expect(data.length).to eq(expected_instance_groups)
-      end
+    it "should find all #{expected_instance_groups} instance groups" do
+      expect(data.length).to eq(expected_instance_groups)
     end
   end
 end
