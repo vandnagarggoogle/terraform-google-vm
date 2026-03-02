@@ -16,13 +16,16 @@ project_id = attribute('project_id')
 
 expected_instances = 4
 expected_instance_groups = 4
+test_zones = "#{region}-a,#{region}-b,#{region}-c,#{region}-f"
 
 control "UMIG" do
   title "Static IPs"
 
-  describe command("gcloud --project=#{project_id} compute instances list --format=json --filter='name~^umig-static-ips*'") do
+  # 1. Instance and Static IP Verification (Using Strongly Consistent Zonal Query)
+  # Adding --zones bypasses the stale global index and fixes the 'actual: 0' error.
+  describe command("gcloud --project=#{project_id} compute instances list --zones=#{test_zones} --format=json --filter='name:umig-static-ips'") do
     its(:exit_status) { should eq 0 }
-    its(:stderr) { should eq '' }
+    its(:stderr) { should eq '' } # Will be empty because data is found immediately
 
     let!(:data) do
       if subject.exit_status == 0
@@ -38,59 +41,64 @@ control "UMIG" do
       end
     end
 
+    # Specific instance property checks
     describe "instance 001" do
-      let(:instance) do
-        data.find { |i| i['name'] == "umig-static-ips-001" }
+      let(:instance) { data.find { |i| i['name'] == "umig-static-ips-001" } }
+      it "should be in zone #{region}-a" do
+        expect(instance['zone']).to match(/.*#{region}-a$/)
       end
-
-      it "should be in zone us-central1-a}" do
-        expect(instance['zone']).to match(/.*us-central1-a$/)
-      end
-
-      it "should have IP 10.128.0.10}" do
+      it "should have IP 10.128.0.10" do
         expect(instance['networkInterfaces'][0]['networkIP']).to eq("10.128.0.10")
       end
     end
 
     describe "instance 002" do
-      let(:instance) do
-        data.find { |i| i['name'] == "umig-static-ips-002" }
+      let(:instance) { data.find { |i| i['name'] == "umig-static-ips-002" } }
+      it "should be in zone #{region}-b" do
+        expect(instance['zone']).to match(/.*#{region}-b$/)
       end
-
-      it "should be in zone us-central1-b}" do
-        expect(instance['zone']).to match(/.*us-central1-b$/)
-      end
-
-      it "should have IP 10.128.0.11}" do
+      it "should have IP 10.128.0.11" do
         expect(instance['networkInterfaces'][0]['networkIP']).to eq("10.128.0.11")
       end
     end
 
     describe "instance 003" do
-      let(:instance) do
-        data.find { |i| i['name'] == "umig-static-ips-003" }
+      let(:instance) { data.find { |i| i['name'] == "umig-static-ips-003" } }
+      it "should be in zone #{region}-c" do
+        expect(instance['zone']).to match(/.*#{region}-c$/)
       end
-
-      it "should be in zone us-central1-c}" do
-        expect(instance['zone']).to match(/.*us-central1-c$/)
-      end
-
-      it "should have IP 10.128.0.12}" do
+      it "should have IP 10.128.0.12" do
         expect(instance['networkInterfaces'][0]['networkIP']).to eq("10.128.0.12")
       end
     end
 
     describe "instance 004" do
-      let(:instance) do
-        data.find { |i| i['name'] == "umig-static-ips-004" }
+      let(:instance) { data.find { |i| i['name'] == "umig-static-ips-004" } }
+      it "should be in zone #{region}-f" do
+        expect(instance['zone']).to match(/.*#{region}-f$/)
       end
-
-      it "should be in zone us-central1-f}" do
-        expect(instance['zone']).to match(/.*us-central1-f$/)
-      end
-
-      it "should have IP 10.128.0.13}" do
+      it "should have IP 10.128.0.13" do
         expect(instance['networkInterfaces'][0]['networkIP']).to eq("10.128.0.13")
+      end
+    end
+  end
+
+  # 2. Unmanaged Instance Group Verification (Using Zonal Query for Consistency)
+  describe command("gcloud --project=#{project_id} compute instance-groups list --zones=#{test_zones} --format=json --filter='name:umig-static-ips'") do
+    its(:exit_status) { should eq 0 }
+    its(:stderr) { should eq '' }
+
+    let!(:data) do
+      if subject.exit_status == 0
+        JSON.parse(subject.stdout)
+      else
+        []
+      end
+    end
+
+    describe "number of instance groups" do
+      it "should be #{expected_instance_groups}" do
+        expect(data.length).to eq(expected_instance_groups)
       end
     end
   end
