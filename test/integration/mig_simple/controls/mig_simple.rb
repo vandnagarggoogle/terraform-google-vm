@@ -21,30 +21,11 @@ expected_instance_groups = 1
 control "MIG" do
   title "Simple Configuration"
 
-  # 1. Add a wait loop to handle Compute API eventual consistency.
-  # Regional queries are strongly consistent, but a 30s buffer is safest for CI.
-  describe "GCE API Propagation" do
-    it "should find resources within 60 seconds" do
-      success = false
-      6.times do |i|
-        # Use '--filter=name:...' (substring) which is more robust than regex in gcloud
-        # IMPORTANT: Added '--regions' flag to hit the strongly consistent regional endpoint
-        cmd = command("gcloud compute instances list --project=#{project_id} --regions=#{region} --format=json --filter='name:mig-simple'")
-        if cmd.exit_status == 0 && JSON.parse(cmd.stdout).length == expected_instances
-          success = true
-          break
-        end
-        puts "Attempt #{i+1}/6: Instances not visible yet. Sleeping 10s..."
-        sleep 10
-      end
-      expect(success).to be true
-    end
-  end
-
-  # 2. Update Instance Verification to use the Regional endpoint
-  describe command("gcloud --project=#{project_id} compute instances list --regions=#{region} --format=json --filter='name:mig-simple'") do
+  # 1. Instance Verification (Using Strongly Consistent Regional Command)
+  # This command queries the MIG directly in its region to bypass the stale global index.
+  describe command("gcloud compute instance-groups managed list-instances mig-simple --project=#{project_id} --region=#{region} --format=json") do
     its(:exit_status) { should eq 0 }
-    its(:stderr) { should eq '' }
+    its(:stderr) { should eq '' } # Will be empty because resources are found immediately
 
     let!(:data) do
       if subject.exit_status == 0
@@ -61,8 +42,8 @@ control "MIG" do
     end
   end
 
-  # 3. Update Instance Group Verification to use the Regional endpoint
-  describe command("gcloud --project=#{project_id} compute instance-groups list --regions=#{region} --format=json --filter='name:mig-simple'") do
+  # 2. Instance Group Verification (Regional Query - Supported and Reliable)
+  describe command("gcloud compute instance-groups list --project=#{project_id} --regions=#{region} --format=json --filter='name:mig-simple'") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
@@ -81,8 +62,8 @@ control "MIG" do
     end
   end
 
-  # 4. Update Managed Instance Group Verification to use the Regional endpoint
-  describe command("gcloud --project=#{project_id} compute instance-groups managed list --regions=#{region} --format=json --filter='name:mig-simple'") do
+  # 3. Managed Instance Group Verification (Regional Query - Supported and Reliable)
+  describe command("gcloud compute instance-groups managed list --project=#{project_id} --regions=#{region} --format=json --filter='name:mig-simple'") do
     its(:exit_status) { should eq 0 }
     its(:stderr) { should eq '' }
 
